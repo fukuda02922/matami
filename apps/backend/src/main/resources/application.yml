@@ -1,0 +1,22 @@
+spring:
+  application:
+    name: matamichi-api
+  datasource:
+    url: ${DATABASE_URL:jdbc:postgresql://localhost:5432/matamichi}
+    username: ${DB_USER:matamichi}
+    password: ${DB_PASSWORD:matamichi}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
