@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git *)",
+      "Bash(ls *)",
+      "Bash(find *)",
+      "Bash(cat *)",
+      "Bash(grep *)",
+      "Bash(mkdir *)",
+      "Bash(cp *)",
+      "Bash(mv *)",
+      "Bash(npx expo *)",
+      "Bash(npx jest *)",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(./gradlew *)",
+      "Bash(docker compose *)",
+      "Bash(docker *)"
+    ]
+  }
+}

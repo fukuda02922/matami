@@ -1,0 +1,348 @@
+openapi: 3.0.3
+info:
+  title: また道 API
+  version: 1.0.0
+  description: また道（Matamichi）バックエンド API 仕様
+
+servers:
+  - url: https://api.matamichi.app/v1
+    description: Production
+  - url: http://localhost:8080/v1
+    description: Local
+
+security:
+  - BearerAuth: []
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    Theme:
+      type: string
+      enum: [career, love, education, family, money, other]
+
+    CrossroadsResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        theme:
+          $ref: '#/components/schemas/Theme'
+        body:
+          type: string
+        choiceA:
+          type: string
+        choiceB:
+          type: string
+        chosen:
+          type: string
+          enum: [A, B]
+        ageAtTime:
+          type: integer
+          nullable: true
+        countA:
+          type: integer
+          description: A を選んだ人の数
+        countB:
+          type: integer
+          description: B を選んだ人の数
+        resonanceCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    ResonanceResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        crossroadsId:
+          type: string
+          format: uuid
+        chosen:
+          type: string
+          enum: [A, B]
+        afterText:
+          type: string
+        yearsLater:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+
+    ErrorResponse:
+      type: object
+      properties:
+        code:
+          type: string
+        message:
+          type: string
+
+paths:
+  /crossroads:
+    get:
+      summary: 岐路フィード取得
+      security: []
+      parameters:
+        - name: theme
+          in: query
+          schema:
+            $ref: '#/components/schemas/Theme'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+            maximum: 50
+      responses:
+        '200':
+          description: 岐路一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrossroadsResponse'
+                  nextCursor:
+                    type: string
+                    nullable: true
+
+    post:
+      summary: 岐路を投稿する
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [theme, body, choiceA, choiceB, chosen]
+              properties:
+                theme:
+                  $ref: '#/components/schemas/Theme'
+                body:
+                  type: string
+                  maxLength: 140
+                choiceA:
+                  type: string
+                  maxLength: 30
+                choiceB:
+                  type: string
+                  maxLength: 30
+                chosen:
+                  type: string
+                  enum: [A, B]
+                ageAtTime:
+                  type: integer
+                  minimum: 10
+                  maximum: 99
+                  nullable: true
+                afterText:
+                  type: string
+                  maxLength: 500
+                  nullable: true
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrossroadsResponse'
+        '422':
+          description: バリデーションエラー
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /crossroads/{id}:
+    get:
+      summary: 岐路詳細取得
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: 岐路詳細
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CrossroadsResponse'
+        '404':
+          description: 見つからない
+
+  /crossroads/{id}/resonances:
+    get:
+      summary: 共鳴タイムライン取得
+      security: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: filter
+          in: query
+          description: 選択肢フィルター
+          schema:
+            type: string
+            enum: [all, A, B]
+            default: all
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: 共鳴一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/ResonanceResponse'
+                  nextCursor:
+                    type: string
+                    nullable: true
+                  stats:
+                    type: object
+                    properties:
+                      countA:
+                        type: integer
+                      countB:
+                        type: integer
+
+    post:
+      summary: 共鳴（その後）を投稿する
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [chosen, afterText]
+              properties:
+                chosen:
+                  type: string
+                  enum: [A, B]
+                afterText:
+                  type: string
+                  maxLength: 500
+                yearsLater:
+                  type: integer
+                  minimum: 0
+                  maximum: 50
+                  nullable: true
+      responses:
+        '201':
+          description: 作成成功
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResonanceResponse'
+
+  /crossroads/similar:
+    post:
+      summary: 類似した岐路を検索（pgvector）
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [query]
+              properties:
+                query:
+                  type: string
+                  maxLength: 200
+                limit:
+                  type: integer
+                  default: 10
+                  maximum: 20
+      responses:
+        '200':
+          description: 類似岐路一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrossroadsResponse'
+
+  /me/crossroads:
+    get:
+      summary: 自分の岐路一覧（マイ岐路）
+      responses:
+        '200':
+          description: 自分の岐路一覧
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  items:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CrossroadsResponse'
+
+  /reports:
+    post:
+      summary: 通報
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetType, targetId]
+              properties:
+                targetType:
+                  type: string
+                  enum: [crossroads, resonance]
+                targetId:
+                  type: string
+                  format: uuid
+                reason:
+                  type: string
+                  enum: [spam, harassment, inappropriate, other]
+      responses:
+        '204':
+          description: 通報完了
