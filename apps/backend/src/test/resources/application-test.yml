@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:tc:postgresql:16:///matamichi_test?TC_INITSCRIPT=init.sql
+    url: jdbc:tc:postgresql:16:///matamichi_test
     driver-class-name: org.testcontainers.jdbc.ContainerDatabaseDriver
   flyway:
     enabled: true
