@@ -32,3 +32,8 @@ logs/
 
 # Test coverage
 coverage/
+
+# Backend build artifacts
+apps/backend/build/
+apps/backend/.gradle/
+apps/backend/out/
