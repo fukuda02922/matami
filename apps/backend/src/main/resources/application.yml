@@ -15,6 +15,9 @@ spring:
 server:
   port: 8080
 
+supabase:
+  jwt-secret: ${SUPABASE_JWT_SECRET:}
+
 management:
   endpoints:
     web:
